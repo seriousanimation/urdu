@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Urdu ASCII Art Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: #111827;
+        }
+        #ascii-output {
+            font-family: 'Noto Sans Mono', 'Courier New', monospace;
+            line-height: 0.8;
+            display: grid;
+            justify-content: center;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border: 1px solid #d1d5db;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            direction: rtl;
+        }
+        #ascii-output span {
+            text-align: center;
+        }
+        .file-input-label, #generate-btn, .action-btn {
+            cursor: pointer;
+        }
+        #message-box {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        .custom-select {
+            appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Animated Urdu ASCII Art Generator</h1>
+            <p class="text-lg text-gray-600">Create looping animations using Urdu characters.</p>
+        </header>
+
+        <main class="bg-white/60 backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-lg border border-gray-200">
+            <div class="flex flex-col md:flex-row items-center gap-6 mb-6">
+                <label for="image-input" class="file-input-label w-full md:w-auto flex-shrink-0 bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300 text-center">
+                    Choose Image(s)
+                </label>
+                <input type="file" id="image-input" class="hidden" accept="image/png, image/jpeg, image/webp, image/gif" multiple>
+                <p id="file-name" class="text-gray-500 truncate w-full text-center md:text-left">No file(s) selected</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                 <div>
+                    <label for="fps-select" class="block mb-2 text-sm font-medium text-gray-900">Frame Rate (FPS):</label>
+                    <select id="fps-select" class="custom-select bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <option value="1">1</option><option value="2">2</option><option value="5" selected>5</option><option value="10">10</option><option value="15">15</option><option value="24">24</option><option value="30">30</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="font-size-select" class="block mb-2 text-sm font-medium text-gray-900">Font Size (px):</label>
+                    <select id="font-size-select" class="custom-select bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <option value="8">8</option><option value="12" selected>12</option><option value="16">16</option><option value="20">20</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="bg-color-select" class="block mb-2 text-sm font-medium text-gray-900">Background Color:</label>
+                    <select id="bg-color-select" class="custom-select bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"></select>
+                </div>
+                <div>
+                    <label for="text-color-select" class="block mb-2 text-sm font-medium text-gray-900">Text Color:</label>
+                    <select id="text-color-select" class="custom-select bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"></select>
+                </div>
+            </div>
+            
+            <div class="text-center mb-8">
+                 <button id="generate-btn" class="w-full md:w-auto bg-green-600 text-white font-bold py-3 px-12 rounded-lg shadow-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                    Generate
+                </button>
+            </div>
+            
+            <div id="output-container" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-900">Your ASCII Animation</h2>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button id="export-frames-btn" class="action-btn bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 border border-blue-600">Export as Images (.zip)</button>
+                        <button id="download-btn" class="action-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 border border-gray-300">Download as HTML</button>
+                    </div>
+                </div>
+                <div class="flex justify-center">
+                   <div id="ascii-output"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <section class="w-full max-w-4xl mx-auto my-12 px-6">
+        <h2 class="text-3xl font-bold text-center text-gray-900 mb-8">Examples</h2>
+        <div class="flex flex-col items-center gap-8">
+
+            <div class="w-full max-w-2xl">
+                <video class="w-full rounded-lg shadow-xl border border-gray-200" controls loop muted playsinline autoplay>
+                    <source src="https://raw.githubusercontent.com/seriousanimation/urdu/main/videos/ASCIIURDU3.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+            <div class="w-full max-w-2xl">
+                 <video class="w-full rounded-lg shadow-xl border border-gray-200" controls loop muted playsinline autoplay>
+                    <source src="https://raw.githubusercontent.com/seriousanimation/urdu/main/videos/RedFaisalMosque.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+            <div class="w-full max-w-2xl">
+                 <video class="w-full rounded-lg shadow-xl border border-gray-200" controls loop muted playsinline autoplay>
+                    <source src="https://raw.githubusercontent.com/seriousanimation/urdu/main/videos/UrduASCII2.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+        </div>
+    </section>
+
+    <canvas id="preview-canvas" class="hidden"></canvas>
+    <div id="message-box" class="fixed bottom-5 right-5 bg-green-500 text-white py-2 px-5 rounded-lg shadow-xl opacity-0 transform translate-y-3"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageInput=document.getElementById('image-input'),fileNameDisplay=document.getElementById('file-name'),generateBtn=document.getElementById('generate-btn'),outputContainer=document.getElementById('output-container'),asciiOutputGrid=document.getElementById('ascii-output'),downloadBtn=document.getElementById('download-btn'),exportFramesBtn=document.getElementById('export-frames-btn'),canvas=document.getElementById('preview-canvas'),fpsSelect=document.getElementById('fps-select'),fontSizeSelect=document.getElementById('font-size-select'),bgColorSelect=document.getElementById('bg-color-select'),textColorSelect=document.getElementById('text-color-select'),ctx=canvas.getContext('2d'),messageBox=document.getElementById('message-box');
+            const lighterUrduRamp=[' ','.','_','\'',',',';',':','"','/','ا','ر','۱','۰','ڑ','ذ','ڈ','ل','و','ں','آ','`','’','“','”','۲','۷','۵','۳','ٹ','ت','ب','پ','ث','ی','ے','ن','۴','۶','۹','۸','س','ج','چ','ح','خ','ک','گ','ف','ق','ش','م','ص','ض','ط','ظ','ع','غ','ہ','ء','ھ'];
+            const colorOptions=[{name:'White',value:'#FFFFFF'},{name:'Black',value:'#000000'},{name:'25% Gray',value:'#C0C0C0'},{name:'50% Gray',value:'#808080'},{name:'75% Gray',value:'#404040'},{name:'Red',value:'#FF0000'},{name:'Green',value:'#00FF00'},{name:'Blue',value:'#0000FF'},{name:'Yellow',value:'#FFFF00'},{name:'Cyan',value:'#00FFFF'},{name:'Magenta',value:'#FF00FF'},{name:'Orange',value:'#FFA500'},{name:'Purple',value:'#800080'}];
+            let imageFiles=[],asciiFrames=[],animationInterval=null,gridCellElements=[],gridDimensions={w:0,h:0};
+            function imageToAscii(img){const refWidth=75;const refHeight=Math.round((img.height/img.width)*refWidth);canvas.width=refWidth;canvas.height=refHeight;ctx.drawImage(img,0,0,img.width,img.height,0,0,refWidth,refHeight);const imageData=ctx.getImageData(0,0,refWidth,refHeight);const pixels=imageData.data;const asciiChars=[];const t14=255*.14,t28=255*.28,t40=255*.4;let rowsProcessed=0;for(let y=0;y<refHeight;y++){if(y%3===2)continue;let row=[];for(let x=0;x<refWidth;x++){const i=(y*refWidth+x)*4;const brightness=0.2126*pixels[i]+0.7152*pixels[i+1]+0.0722*pixels[i+2];let char;if(brightness<t14)char='█';else if(brightness<t28)char='▓';else if(brightness<t40)char='▒';else{const remainingRange=255-t40;const brightnessInRem=brightness-t40;const rampIndex=Math.floor(((remainingRange-brightnessInRem)/remainingRange)*(lighterUrduRamp.length-1));char=lighterUrduRamp[rampIndex]}
+row.push(char)}
+asciiChars.push(...row.reverse());rowsProcessed++}
+return{chars:asciiChars,width:refWidth,height:rowsProcessed}}
+            function setupGrid(width,height){gridDimensions={w:width,h:height};asciiOutputGrid.innerHTML='';gridCellElements=[];asciiOutputGrid.style.gridTemplateColumns=`repeat(${width},auto)`;const gridSize=width*height;for(let i=0;i<gridSize;i++){const cell=document.createElement('span');asciiOutputGrid.appendChild(cell);gridCellElements.push(cell)}}
+            function startAnimation(){if(animationInterval)clearInterval(animationInterval);if(asciiFrames.length===0)return;let currentFrameIndex=0;const fps=parseInt(fpsSelect.value,10);const intervalTime=1000/fps;const animationLoop=()=>{const frameChars=asciiFrames[currentFrameIndex];for(let i=0;i<gridCellElements.length;i++){gridCellElements[i].textContent=frameChars[i]||' '}
+currentFrameIndex=(currentFrameIndex+1)%asciiFrames.length};animationLoop();if(asciiFrames.length>1){animationInterval=setInterval(animationLoop,intervalTime)}}
+            function updateFontSize(){asciiOutputGrid.style.fontSize=`${fontSizeSelect.value}px`}
+            function updateColors(){asciiOutputGrid.style.backgroundColor=bgColorSelect.value;asciiOutputGrid.style.color=textColorSelect.value}
+            function populateColorDropdowns(){colorOptions.forEach(color=>{const bgOption=new Option(color.name,color.value);const textOption=new Option(color.name,color.value);bgColorSelect.appendChild(bgOption);textColorSelect.appendChild(textOption)});bgColorSelect.value='#ffffff';textColorSelect.value='#000000'}
+            function processImageFile(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=(event)=>{const img=new Image();img.onload=()=>resolve(imageToAscii(img));img.onerror=reject;img.src=event.target.result};reader.onerror=reject;reader.readAsDataURL(file)})}
+            function showNotification(message,type='success'){messageBox.textContent=message;messageBox.className=`fixed bottom-5 right-5 text-white py-2 px-5 rounded-lg shadow-xl opacity-0 transform translate-y-3`;messageBox.classList.add(type==='success'?'bg-green-500':'bg-red-500');messageBox.classList.remove('opacity-0','translate-y-3');setTimeout(()=>messageBox.classList.add('opacity-0','translate-y-3'),3000)}
+            populateColorDropdowns();updateFontSize();updateColors();
+            imageInput.addEventListener('change',e=>{imageFiles=Array.from(e.target.files);fileNameDisplay.textContent=imageFiles.length>0?`${imageFiles.length} file(s) selected`:'No file(s) selected';generateBtn.disabled=imageFiles.length===0});
+            generateBtn.addEventListener('click',async()=>{if(imageFiles.length===0)return;showNotification('Processing images...','success');generateBtn.disabled=true;asciiFrames=[];for(let i=0;i<imageFiles.length;i++){try{const result=await processImageFile(imageFiles[i]);if(i===0)setupGrid(result.width,result.height);asciiFrames.push(result.chars)}catch(error){showNotification(`Failed to process ${imageFiles[i].name}`,'error')}}
+if(asciiFrames.length>0){outputContainer.classList.remove('hidden');startAnimation();showNotification('Generation complete!','success')}
+generateBtn.disabled=false});
+            downloadBtn.addEventListener('click',()=>{const htmlContent=generateDownloadableHTML();const blob=new Blob([htmlContent],{type:'text/html'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='urdu-ascii-animation.html';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)});
+            exportFramesBtn.addEventListener('click',async()=>{if(asciiFrames.length===0){showNotification('Please generate an animation first.','error');return}
+showNotification(`Exporting ${asciiFrames.length} frames...`,'success');const zip=new JSZip();const FONT_SIZE=20;const LINE_HEIGHT=0.8;const CHAR_WIDTH=FONT_SIZE*0.6;const canvas_export=document.createElement('canvas');canvas_export.width=gridDimensions.w*CHAR_WIDTH;canvas_export.height=gridDimensions.h*(FONT_SIZE*LINE_HEIGHT);const ctx_export=canvas_export.getContext('2d');for(let i=0;i<asciiFrames.length;i++){const frame=asciiFrames[i];ctx_export.fillStyle=bgColorSelect.value;ctx_export.fillRect(0,0,canvas_export.width,canvas_export.height);ctx_export.fillStyle=textColorSelect.value;ctx_export.font=`${FONT_SIZE}px 'Noto Sans Mono'`;ctx_export.textAlign='center';ctx_export.textBaseline='middle';for(let y=0;y<gridDimensions.h;y++){for(let x=0;x<gridDimensions.w;x++){const charIndex=y*gridDimensions.w+x;const char=frame[charIndex];const drawX=canvas_export.width-(x*CHAR_WIDTH)-(CHAR_WIDTH/2);const drawY=y*(FONT_SIZE*LINE_HEIGHT)+((FONT_SIZE*LINE_HEIGHT)/2);ctx_export.fillText(char,drawX,drawY)}}
+const frameNumber=String(i+1).padStart(4,'0');const blob=await new Promise(resolve=>canvas_export.toBlob(resolve,'image/png'));zip.file(`frame_${frameNumber}.png`,blob)}
+const zipBlob=await zip.generateAsync({type:"blob"});const url=URL.createObjectURL(zipBlob);const a=document.createElement('a');a.href=url;a.download='ascii-frames.zip';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showNotification('Frames exported to .zip!','success')});
+            fpsSelect.addEventListener('change',()=>{if(animationInterval)startAnimation()});
+            fontSizeSelect.addEventListener('change',updateFontSize);
+            bgColorSelect.addEventListener('change',updateColors);
+            textColorSelect.addEventListener('change',updateColors);
+            function generateDownloadableHTML(){const fps=parseInt(fpsSelect.value,10);const fontSize=parseInt(fontSizeSelect.value,10);const bgColor=bgColorSelect.value;const textColor=textColorSelect.value;const framesData=JSON.stringify(asciiFrames);const width=gridDimensions.w;const height=gridDimensions.h;return`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Urdu ASCII Animation</title><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet"><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background-color:#f9fafb;font-family:'Noto Sans Mono','Courier New',monospace}#animation{font-size:${fontSize}px;line-height:.8;background-color:${bgColor};color:${textColor};border:1px solid #d1d5db;padding:1rem;border-radius:.5rem;display:grid;grid-template-columns:repeat(${width},auto);justify-content:center;direction:rtl}#animation span{text-align:center}</style></head><body><div id="animation"></div><script>const frames=${framesData};const el=document.getElementById('animation');const cells=[];const gridSize=${width*height};for(let i=0;i<gridSize;i++){const cell=document.createElement('span');el.appendChild(cell);cells.push(cell)}
+let i=0;const t=1000/${fps};if(frames&&frames.length>0){const l=()=>{const f=frames[i];for(let j=0;j<cells.length;j++){cells[j].textContent=f[j]||' '}
+i=(i+1)%frames.length};l();if(frames.length>1){setInterval(l,t)}}<\/script></body></html>`}
+        });
+    </script>
+</body>
+</html>
